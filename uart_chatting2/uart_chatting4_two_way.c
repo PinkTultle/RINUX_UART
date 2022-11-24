@@ -7,7 +7,7 @@
 #include <pthread.h>
 
 int chatnumber=0;
-void *send(int *arg);
+void *send(void *arg);
 
 int main() {
   int fd; //포트 파일을 저장할 공간
@@ -71,7 +71,7 @@ int main() {
 }
 
 
-void *send(int *arg){
+void *send(void *arg){
 //송신 rpi >> PC스레드 함수
 
 	char str[256]={}; 
@@ -103,6 +103,7 @@ void *send(int *arg){
 	  	 // 전송후 다음 출력을 위해 버퍼 초기화
 	  	 if(n < 0){
 			 perror("Write failed - ");
+			 return 0;
 		 } 
 	 }
 }
