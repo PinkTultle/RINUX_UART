@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 int chatnumber=0;
+void *send(int *arg);
 
 int main() {
   int fd; //포트 파일을 저장할 공간
@@ -30,8 +31,17 @@ int main() {
   char buf[256],str[256]; //입력버퍼 buf, 출력버퍼 str 
   char mes[] = "Message : ";
   int n;
+  int** re;
+  pthread_t thread_id;
+
 
   write(fd, mes, sizeof(mes));  //최초 "Message : " 출력
+  
+  if((n = pthread_create((&thread_id), NULL, send, &fd)) != 0){
+	  perror("error : don't create thread");
+	  return 0;
+  }
+
   while(1){
 	  //무한 루프를 이용하여 값이 들오오는지 항시 체크한다.
 	  if((n = read(fd, (void*)buf, sizeof(buf)))>0){ 
@@ -54,24 +64,54 @@ int main() {
 	  }
   }
 
+  pthread_join(thread_id, NULL); 
   //열었던 포트 파일 닫기
   close(fd);
   return 0;
 }
 
 
-void *send(void *arg){
+void *send(int *arg){
 //송신 rpi >> PC스레드 함수
 
+	char str[256]={}; 
+  
+	//출력 버퍼 str 초기화 안할시 최초 문자 전송시에 쓰레기값 전송됨으로 선언과 동시에 초기화
+  	char mes[] = "chat start\n", outmes[] = "Message : ";
+  	outmes[-1] = 0;
+	int n;
 
 
+ 	 write((int)arg, mes, sizeof(mes));
+	 //최초 "chat start" 문자 출력
+
+	 while(1){
+
+		 printf("Message : ");
+		 fgets(str, sizeof(str), stdin);
+		 if( (strncmp(str,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조 
+		 {
+			 //quit가 입력되었다면 수신을 종료한다.
+			 write((int)arg,"chat quit\n", 10);
+			 return 0;
+		 }
+	  
+		 write((int)arg, outmes, sizeof(outmes));
+		 n = write((int)arg,str ,sizeof(str) );
+		 //출력버퍼 전송 
+	  	 memset(str, 0, sizeof(str) );
+	  	 // 전송후 다음 출력을 위해 버퍼 초기화
+	  	 if(n < 0){
+			 perror("Write failed - ");
+		 } 
+	 }
 }
 
-
+/*
 void *receprion(void *arg){
 //수신 PC >> rpi 스레드 함수
 
 
 }
 
-
+*/
