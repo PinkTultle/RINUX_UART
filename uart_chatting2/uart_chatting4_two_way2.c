@@ -7,7 +7,9 @@
 #include <pthread.h>
 
 int chatnumber=0;
-void *send(void *arg);
+//void *send(void *arg);
+void *receprion(void *arg);
+
 
 int main() {
   int fd; //포트 파일을 저장할 공간
@@ -28,52 +30,59 @@ int main() {
   //다른 방법으로는 fd |= O_NONBLOCK이 있다.
   //이는 IO통신에서 호출함수를 바로 return시키냐를 결정한다.
 
-  char buf[256],str[256]; //입력버퍼 buf, 출력버퍼 str 
+  char buf[256],str[256] = {}; //입력버퍼 buf, 출력버퍼 str 
   char mes[] = "Message : ";
   int n;
   int** re;
   pthread_t thread_id;
+  pthread_mutex_t a_look = pthread_mutex_initializer;
 
 
   write(fd, mes, sizeof(mes));  //최초 "Message : " 출력
   
-  if((n = pthread_create((&thread_id), NULL, send, &fd)) != 0){
+  if((n = pthread_create((&thread_id), NULL, receprion, &fd)) != 0){
 	  perror("error : don't create thread");
 	  return 0;
   }
-  //pthread_join(thread_id, re); 
+  
+  //출력 버퍼 str 초기화 안할시 최초 문자 전송시에 쓰레기값 전송됨으로 선언과 동시에 초기화
+  char first[] = "chat start\n", outmes[] = "Message : ";
+  outmes[-1] = 0;
+
+  write((int)first, first, sizeof(mes));
+  //최초 "chat start" 문자 출력
+  
   while(1){
-	  //무한 루프를 이용하여 값이 들오오는지 항시 체크한다.
-	  if(
-	  if((n = read(fd, (void*)buf, sizeof(buf)))>0){ 
-		  //값이 입력된경우 작동 read함수가 값을 읽었을 경우,
-		  //읽은 Byte수를 반환 즉 n > 0 경우 값이 입력된것이다.
-
-		  if( (strncmp(buf,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조
-		  {
-			  //quit가 입력되었다면 수신을 종료한다.
-			  printf("chat quit\n");
-			  return 0;
-		  }
-
-		  printf("Message : %s", buf); //입력버퍼에 자장된 값출력
-		  write(fd, mes, sizeof(mes)); //송신측에 "Message : " 출력
-		  memset(buf, 0, sizeof(buf)); //다시 수신 받았을때 다른 값이 썪이지 않도록 버퍼 초기화
+	  printf("Message : ");
+	  fgets(str, sizeof(str), stdin);
+	  if( (strncmp(str,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조 
+	  {
+		  //quit가 입력되었다면 수신을 종료한다.
+		  write(fd,"chat quit\n", 10);
+		  return 0;
 	  }
-	  else if(n < 0){ //반환값이 -1 이라면 읽기에 실패한경우
-		  perror("Read failed - ");
+	  
+	  write(fd, outmes, sizeof(outmes));
+	  n = write(fd,str ,sizeof(str) );
+	  //출력버퍼 전송 
+	  memset(str, 0, sizeof(str) );
+	  //전송후 다음 출력을 위해 버퍼 초기화
+	  if(n < 0){
+		  perror("Write failed - ");
+		  //return 0;	  
 	  }
   }
 
-
+   pthread_join(thread_id, NULL); 
   //열었던 포트 파일 닫기
   close(fd);
   return 0;
 }
 
-
+/*
 void *send(void *arg){
 //송신 rpi >> PC스레드 함수
+
 
 	char str[256]={}; 
   
@@ -108,12 +117,35 @@ void *send(void *arg){
 		 } 
 	 }
 }
+*/
 
-/*
 void *receprion(void *arg){
 //수신 PC >> rpi 스레드 함수
+//무한 루프를 이용하여 값이 들오오는지 항시 체크한다.
+	char buf[256],str[256]; //입력버퍼 buf, 출력버퍼 str 
+	char mes[] = "Message : ";
+	int n;
 
+	while(1){
+		if((n = read((int)arg, (void*)buf, sizeof(buf)))>0){ 
+			//값이 입력된경우 작동 read함수가 값을 읽었을 경우,
+			//읽은 Byte수를 반환 즉 n > 0 경우 값이 입력된것이다.
 
+			if( (strncmp(buf,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조
+			{
+				//quit가 입력되었다면 수신을 종료한다.
+				printf("chat quit\n");
+				return 0;
+			}
+
+			printf("Message : %s", buf); //입력버퍼에 자장된 값출력
+			write((int)arg, mes, sizeof(mes)); //송신측에 "Message : " 출력
+			memset(buf, 0, sizeof(buf)); //다시 수신 받았을때 다른 값이 썪이지 않도록 버퍼 초기화
+		}
+		else if(n < 0){ //반환값이 -1 이라면 읽기에 실패한경우
+			perror("Read failed - ");
+		}
+	}
 }
 
-*/
+
