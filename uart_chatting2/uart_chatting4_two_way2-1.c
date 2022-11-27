@@ -34,7 +34,7 @@ int main() {
 	//이는 IO통신에서 호출함수를 바로 return시키냐를 결정한다.
 	
 	char buf[256],str[256] = {}; //입력버퍼 buf, 출력버퍼 str 
-	char mes[] = "rpi Message : ";
+	char mes[] = ">>>";
 	int n;
 	int** re;
 	pthread_t thread_id;
@@ -52,7 +52,7 @@ int main() {
 	//최초 "chat start" 문자 출력
 
 	while(1){
-		printf("send message : ");
+		printf(">>>");
 		fgets(str, sizeof(str), stdin);
 
 		pthread_mutex_lock(&mutex_lock);
@@ -64,7 +64,8 @@ int main() {
 		}
 		if( who != 1)
 			write(fd, "\n", sizeof(char));
-
+		
+		who = 1;
 		write(fd, mes, sizeof(mes));
 		n = write(fd,str ,sizeof(str) );
 		//출력버퍼 전송 
@@ -93,7 +94,7 @@ void *receprion(void *arg){
 	//무한 루프를 이용하여 값이 들오오는지 항시 체크한다.
 	
 	char buf[256]; //입력버퍼 buf, 출력버퍼 str 
-	char mes[] = "send Message : ";
+	char mes[] = ">>> ";
 	int n;
 
 	while(1){
@@ -109,10 +110,15 @@ void *receprion(void *arg){
 				return 0;
 			}
 			
+			if(who != 2){
+				printf("\n");
+			}
+
 			buf[-1] = 0;
-			printf("PC_Message : %s", buf); //입력버퍼에 저장된 값출력
-			write(fd, mes, sizeof(mes)); //송신측에 "Message : " 출력
+			printf("PC message : %s\n", buf); //입력버퍼에 저장된 값출력
+			write(fd, mes, sizeof(mes)); //송신측에 ">>>" 출력
 			memset(buf, 0, sizeof(buf)); //다시 수신 받았을때 다른 값이 썪이지 않도록 버퍼 초기화
+			who = 2;
 		}
 		else if(n < 0){ //반환값이 -1 이라면 읽기에 실패한경우
 			perror("Read failed - ");
