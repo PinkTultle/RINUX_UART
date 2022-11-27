@@ -125,9 +125,10 @@ void *receprion(void *arg){
 	char buf[256],str[256]; //입력버퍼 buf, 출력버퍼 str 
 	char mes[] = "Message : ";
 	int n;
+	FILE fd_S = (int)arg;
 
 	while(1){
-		if((n = read((int)arg, (void*)buf, sizeof(buf)))>0){ 
+		if((n = read(fd_S, (void*)buf, sizeof(buf)))>0){ 
 			//값이 입력된경우 작동 read함수가 값을 읽었을 경우,
 			//읽은 Byte수를 반환 즉 n > 0 경우 값이 입력된것이다.
 
@@ -139,7 +140,7 @@ void *receprion(void *arg){
 			}
 
 			printf("Message : %s", buf); //입력버퍼에 자장된 값출력
-			write((int)arg, mes, sizeof(mes)); //송신측에 "Message : " 출력
+			write(fd_S, mes, sizeof(mes)); //송신측에 "Message : " 출력
 			memset(buf, 0, sizeof(buf)); //다시 수신 받았을때 다른 값이 썪이지 않도록 버퍼 초기화
 		}
 		else if(n < 0){ //반환값이 -1 이라면 읽기에 실패한경우
