@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -12,7 +13,7 @@ pthread_mutex_t mutex_lock;
 void *receprion(void *arg);
 
 int fd; //포트 파일을 저장할 공간
-int who=0;
+int who=3;
 
 int main() {
 	//int fd; //포트 파일을 저장할 공간
@@ -36,7 +37,6 @@ int main() {
 	char buf[256],str[256] = {}; //입력버퍼 buf, 출력버퍼 str 
 	char mes[] = ">>>";
 	int n;
-	int** re;
 	pthread_t thread_id;
 	pthread_mutex_init(&mutex_lock, NULL);
 	
@@ -49,11 +49,10 @@ int main() {
 	char first[] = "chat start\n";
 
 	write(fd, first, sizeof(first));
-	write(fd, mes, sizeof(mes));
+	printf("%s",mes);
 	//최초 "chat start" 문자 출력
 
 	while(1){
-		printf(">>>");
 		fgets(str, sizeof(str), stdin);
 
 		pthread_mutex_lock(&mutex_lock);
@@ -63,12 +62,11 @@ int main() {
 			write(fd,"chat quit\n", 10);
 			return 0;
 		}
-		if( who != 1)
-			write(fd, "\n", sizeof(char));
 		
-		who = 1;
+		who = 2;
 		write(fd, mes, sizeof(mes));
 		n = write(fd,str ,sizeof(str) );
+		printf("%s",mes);
 		//출력버퍼 전송 
 		memset(str, 0, sizeof(str) );
 		//전송후 다음 출력을 위해 버퍼 초기화
@@ -88,14 +86,12 @@ int main() {
 
 void *receprion(void *arg){
 	//수신 PC >> rpi 스레드 함수
-	int S_fd = (int)arg;
 
-	fcntl(S_fd, F_SETFL, 0);
 
 	//무한 루프를 이용하여 값이 들오오는지 항시 체크한다.
 	
 	char buf[256]; //입력버퍼 buf, 출력버퍼 str 
-	char mes[] = ">>> ";
+	char mes[] = ">>>";
 	int n;
 
 	while(1){
@@ -106,17 +102,22 @@ void *receprion(void *arg){
 
 			if( (strncmp(buf,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조
 			{
-				//quit가 입력되었다면 수신을 종료한다.
 				printf("chat quit\n");
-				return 0;
+				exit(0);  //스레드에서도 exit()함수 호출시 메인프로세스도 종료된다.
 			}
 			
-			if(who != 2){
-				printf("\n");
+			if(who == 3){
+				printf("\nPC message : %s", buf);
+				who = 2;
+			}
+			else {
+				printf("PC message : %s", buf);	
+				
 			}
 
 			buf[-1] = 0;
-			printf("PC message : %s\n", buf); //입력버퍼에 저장된 값출력
+
+			printf("PC message : %s", buf); //입력버퍼에 저장된 값출력
 			write(fd, mes, sizeof(mes)); //송신측에 ">>>" 출력
 			memset(buf, 0, sizeof(buf)); //다시 수신 받았을때 다른 값이 썪이지 않도록 버퍼 초기화
 			who = 2;
