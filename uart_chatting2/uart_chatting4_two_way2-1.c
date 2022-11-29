@@ -48,7 +48,8 @@ int main() {
 	//출력 버퍼 str 초기화 안할시 최초 문자 전송시에 쓰레기값 전송됨으로 선언과 동시에 초기화
 	char first[] = "chat start\n";
 
-	write(fd, first, sizeof(mes));
+	write(fd, first, sizeof(first));
+	write(fd, mes, sizeof(mes));
 	//최초 "chat start" 문자 출력
 
 	while(1){
