@@ -13,7 +13,7 @@ pthread_mutex_t mutex_lock;
 void *receprion(void *arg);
 
 int fd; //포트 파일을 저장할 공간
-int who=3;
+//int who=1;
 
 int main() {
 	//int fd; //포트 파일을 저장할 공간
@@ -54,16 +54,19 @@ int main() {
 
 	while(1){
 		fgets(str, sizeof(str), stdin);
+		//who = 1;
 
 		pthread_mutex_lock(&mutex_lock);
 		if( (strncmp(str,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조
 		{
 			//quit가 입력되었다면 수신을 종료한다.
-			write(fd,"chat quit\n", 10);
-			return 0;
+			write(fd,"chat quit\n", sizeof(first));
+			sleep(1);
+			close(fd);
+			exit(0);
 		}
-		
-		who = 2;
+	
+		//who = 1;
 		write(fd, mes, sizeof(mes));
 		n = write(fd,str ,sizeof(str) );
 		printf("%s",mes);
@@ -77,7 +80,6 @@ int main() {
 		pthread_mutex_unlock(&mutex_lock);
 	}
 
-	pthread_join(thread_id, NULL);
 	//열었던 포트 파일 닫기
 	close(fd);
 	return 0;
@@ -95,32 +97,32 @@ void *receprion(void *arg){
 	int n;
 
 	while(1){
-		if((n = read(fd, (void*)buf, sizeof(buf)))>=0){
-			pthread_mutex_lock(&mutex_lock);
+		if((n = read(fd, (void*)buf, sizeof(buf)))>0){
 			//값이 입력된경우 작동 read함수가 값을 읽었을 경우,
 			//읽은 Byte수를 반환 즉 n > 0 경우 값이 입력된것이다.
-
+			pthread_mutex_lock(&mutex_lock);
 			if( (strncmp(buf,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조
 			{
 				printf("chat quit\n");
+				close(fd);
 				exit(0);  //스레드에서도 exit()함수 호출시 메인프로세스도 종료된다.
 			}
-			
-			if(who == 3){
+		    /*	
+			if(who != 0){
 				printf("\nPC message : %s", buf);
-				who = 2;
+				who = 0;
 			}
-			else {
-				printf("PC message : %s", buf);	
-				
-			}
+			else{
+				printf("PC message : %s", buf);
+			}*/
 
 			buf[-1] = 0;
 
 			printf("PC message : %s", buf); //입력버퍼에 저장된 값출력
 			write(fd, mes, sizeof(mes)); //송신측에 ">>>" 출력
+			//printf("%d",who);
 			memset(buf, 0, sizeof(buf)); //다시 수신 받았을때 다른 값이 썪이지 않도록 버퍼 초기화
-			who = 2;
+			//who = 2;
 		}
 		else if(n < 0){ //반환값이 -1 이라면 읽기에 실패한경우
 			perror("Read failed - ");
@@ -129,45 +131,3 @@ void *receprion(void *arg){
 	}
 }
 
-
-
-
-/*
-void *send(void *arg){
-//송신 rpi >> PC스레드 함수
-
-
-	char str[256]={};
-
-	//출력 버퍼 str 초기화 안할시 최초 문자 전송시에 쓰레기값 전송됨으로 선언과 동시에 초기화
-	char mes[] = "chat start\n", outmes[] = "Message : ";
-	outmes[-1] = 0;
-	int n;
-
-
-	 //write((int)arg, mes, sizeof(mes));
-	 //최초 "chat start" 문자 출력
-
-	 while(1){
-
-		 printf("Message : ");
-		 fgets(str, sizeof(str), stdin);
-		 if( (strncmp(str,"quit",3) == 0) ) //입력 버퍼 4번째 자리까지 문자열 대조
-		 {
-			 //quit가 입력되었다면 수신을 종료한다.
-			 write((int)arg,"chat quit\n", 10);
-			 return 0;
-		 }
-
-		 write((int)arg, outmes, sizeof(outmes));
-		 n = write((int)arg,str ,sizeof(str) );
-		 //출력버퍼 전송
-		 memset(str, 0, sizeof(str) );
-		 // 전송후 다음 출력을 위해 버퍼 초기화
-		 if(n < 0){
-			 perror("Write failed - ");
-			 //return 0;
-		 }
-	 }
-}
-*/
